@@ -30,8 +30,7 @@ To ease development, the Onthe parser is currently written for node.js
 engine are trivial.
 
 
-HACKING
-=======
+==HACKING==
 
 The compiler comes in a few parts. There's the lexer, the parser, and
 the code generator. Rather than do optimizations myself, I've chosen
@@ -57,3 +56,12 @@ definition of the language is reasonably divided from the logic of hte
 compiler -- though I hope to improve that division further. It's NOT
 a compiler compiler by any means; I hope to have much better error
 reporting than most generated parsers.
+
+==Emacs==
+
+To install the emacs mode, drop onthe-mode.el somewhere convenient,
+and add a 'load to your init.el:
+
+(load "~/.emacs.d/onthe-mode.el")
+
+Change the path as appropriate, of course.
