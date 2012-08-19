@@ -70,8 +70,12 @@ var javascript = function (t) {
 }
 
 var fs = require("fs");
-s = fs.readFileSync('test.onthe', 'ascii');
 
-log(parser.token_stream(s))
-var t = parser.statement(parser.token_stream(s))
-log(javascript(t));
+var generate = function (file) {
+    s = fs.readFileSync(file, 'ascii');
+
+    var t = parser.statement(parser.token_stream(s))
+    return javascript(t);
+}
+exports.javascript = javascript;
+exports.generate = generate;

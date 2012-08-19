@@ -27,7 +27,6 @@ var expression = function (prev_precedence, tokens) {
 }
 
 var fill = function (t, left, tokens) {
-    log(t);
     if (tokens === undefined){
         tokens = left;
         return operators[t.type].prefix(t, tokens)
@@ -70,7 +69,6 @@ var add_infix_class = function () {
 // Parsing statements
 
 var expect = function (t, tokens) {
-    log(t, tokens.peek());
     if (tokens.peek().type !== t) {
         throw {name: "expected", info: [t, tokens.peek()]}
     }
