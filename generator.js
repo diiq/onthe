@@ -37,11 +37,27 @@ var javascript = function (t) {
 
         case "object_pair":
             return javascript(t[1]) + " : " + javascript(t[2]);
+
+        case "if" :
+            return " if (" +javascript(t[1]) + ")" +
+                           javascript(t[2]) +
+                   (t[3] ? javascript(t[3]) : "");
+
+        case "while" :
+            return " while (" + javascript(t[1]) + ")" + javascript(t[2]);
+
+        case "λ" :
+            return " function (" + listify(t[1], ",") + ")" + javascript(t[2]);
+
+        case "block" :
+             return "{" + listify(t[1], ";") + ";}";
+
+
     }
 }
 
-var s = "(2 + {.name 3 + 3, .fars \n    6 * 2}) * \n[1, 2, 3] / 4 - ham.sand(foo[2], 5 + 6, gee)"
+var s = "if (foo):\n    bar.big = baz\n    3 + 4\ngoo.gah"
 
 log(lexer.tokenize(s));
-var t = parser.expression(0, parser.token_stream(s))
+var t = parser.statement(parser.token_stream(s))
 log(javascript(t));
