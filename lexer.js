@@ -1,65 +1,139 @@
 var test = require("./test.js");
+var tests = {};
+var log = console.log;
+var all_true = function () {
+    var ret = {};
+    for (var i = 0; i < arguments.length; i++){
+        ret[arguments[i]] = true;
+    }
+    return ret;
+}
 
 // *** Token classes (excluding names and numbers!) ***
 
 // Strings and regexs are 'delimited' tokens, comsuming all characters
 // between.
-var delimiters = obj("\"", "\'", "/"); 
+var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
+                                        // division and regex? r"
 
-// Prefixes are characters that cannot start a name, because they have
-// specific meaning at the start of an expression.
-var prefix = obj("+", "-", "!", "(", "[")
+var invalid_name_initials = ["-"]; // Digits are assumed.
 
-// Postfix characters cannot appear *anywhere* in a name.
-var postfix_char = obj("(", ")", "[", "]", ",", ";");
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", " "];
 
 // Keywords are names with language-specific global meaning.
-var keyword = obj("break", "case", "catch", "continue", "default",
+var keywords = all_true("break", "case", "catch", "continue", "default",
                   "delete", "else", "finally", "for", "function",
                   "if", "in", "instanceof", "switch", "this", "throw",
                   "try", "typeof", "while", "with", "λ", "*", "/",
                   "%", "+", "-", ">", "<", ">=", "<=", "+=", "-=",
-                  "===", "!==", "&&", "||");
+                  "==", "!=", "and", "or");
 
-// *** Character Classes ***
+// *** Character ,Classes ***
 // These are utilities for parsing.
 
 var digit = function (c) { return c <= 9 && c >= 0; }
 
-var cchar = function (s, i, c) { return s[i] === c ? i+1 : false }
+var cchar = function (s, i, c) { return s[i] === c ? i+1 : false; }
 
 var spaces = function (s, i) { 
     for(; s[i] === ' '; i++);
     return i;
 }
 
+// *** Lexers ***
 
-// *** Parsers ***
+var delimited = function (s, i, del) {
+    var j = i;
 
-var delimited = function (del) {
-        log(del);
-        if (s[i] !== del) return false;
-        var j = i;
+    if (s[i] !== del) return false;
 
-        do {
-            for (j += 1; s[j] !== del; j++);
-            if (j >= s.length) throw {name : "stringy", info : [del, s, i]}
-        } while (s[j - 1] === '\\');
-
-        j += 1;
-        return [j, s.slice(i, j)];
-    }
-
-var delimited_literal = function (s, i) {
-    var ret, dstring;
-
-    for (type in multiword){ 
-       if (multiword.hasOwnProperty(type) && multiword[type].delimeter){
-            ret = dstring(multiword[type].delimeter);
-            if (ret) return [ret[0], multiword[type].tokener(ret[1])];
+    while (j == i || s[j - 1] == '\\') {
+        for (j += 1; s[j] != del; j += 1) {
+            if (s[j] === '\\') j++;  // To skip escaped single chars.
+        }
+        if (j >= s.length) { 
+            throw {name: "string_unterm", info: [del, s, i]};
         }
     }
-};
-tests.multiword_literal = function () {
-    return multiword_literal("\"he\\\"llo\"**", 0)[1].value == "\"he\\\"llo\"";
-};
+    j += 1;
+    return {from: i, to: j, type: del, value: s.slice(i, j)};
+}
+
+tests.delimited = function () {
+    return delimited("\"he\\\"llo\"**", 0, "\"").value == "\"he\\\"llo\"";
+}
+
+var number = function (s, i) {
+    var index, ret, a, retr;
+
+    // This should be simple, but parseFloat doesn't say *where* it stops.
+    index = i
+    ret = parseFloat(s.slice(i, s.length))
+    retr = function () {
+        return {from: index,
+                to: i,
+                type: "number",
+                value: ret}
+    }
+    // Integer
+    for (i; digit(s[i]); i += 1);
+
+    // Fraction
+    j = cchar(s, i, '.');
+    if (!j) return retr();
+
+    for (i = j; digit(s[i]); i++);
+
+    // Exponent
+    j = cchar(s, i, 'e') || cchar(s, i, 'E');
+    if (!j) return retr();
+
+    j = cchar(s, i, '+') || cchar(s, i, '-');
+    if (j) i = j;
+
+    j = i;
+    for (i; digit(s[i]); i++);
+    if (a == i) {
+        throw { name: "number_bad_exponent",
+               info: [s, index]}
+    }
+    return retr();
+}
+tests.number = function () {
+    return number("2.5e-5**", 0).value === 2.5e-5;
+}
+
+var matcher = function () {
+    var ret = "";
+    for (var i = 0; i < invalid_name_characters.length; i++) {
+        ret += "\\" + invalid_name_characters[i] + "|";
+    }
+    return new RegExp(ret.slice(0, ret.length - 1) + "");
+}();
+
+var token_at = function (s, i) {
+    var word;
+    i = spaces(s, i);
+    if (delimiters.indexOf(s[i]) !== -1) return delimited(s, i, s[i]);
+    if (digit(s[i])) return number(s, i, s[i]);
+    if (invalid_name_characters.indexOf(s[i]) !== -1 ||
+        invalid_name_initials.indexOf(s[i]) !== -1){
+         return {from: i, to: i+1, type: s[i], value: s[i]};
+    }
+    word = s.slice(i, s.length).split(matcher)[0];
+    if (keywords[word]) return {from: i, to: i+word.length, type: word, value: word};;
+    return {from: i, to: i+word.length, type: "name", value: word};
+}
+
+tests.token_at = function () {
+    var t, i, s;
+    i = 0;
+    s = "call while fart \"helllo\" (/ag asdat f/, 2)";
+    while (i < s.length) {
+        t = token_at(s, i);
+        log(t);
+        i = t.to;
+    }
+    return t.value == ')';
+}
+test.run(tests);
