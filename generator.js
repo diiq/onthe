@@ -38,7 +38,7 @@ var javascript = function (t) {
         case "object_pair":
             return javascript(t[1]) + " : " + javascript(t[2]);
 
-        case "?":
+        case "?": // ternary
             return javascript(t[1]) + " ? " + javascript(t[2]) + " : " + javascript(t[3]);
 
         case "if" :
@@ -55,7 +55,8 @@ var javascript = function (t) {
         case "block" :
              return "{" + listify(t[1], ";") + ";}";
 
-
+        default :
+             return t[0] + " (" + javascript(t[1]) + ");";
     }
 }
 
