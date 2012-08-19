@@ -190,6 +190,5 @@ var tokenize = function (s) {
 
 exports.token_at = token_at;
 exports.tokenize = tokenize;
-for(var i="0"; i<="9"; i++) log(i);
 test.run(tests, "silent");
 
