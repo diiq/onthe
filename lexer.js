@@ -151,5 +151,5 @@ var tokenize = function (s) {
 exports.token_at = token_at;
 exports.tokenize = tokenize;
 
-test.run(tests);
+test.run(tests, "silent");
 
