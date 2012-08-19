@@ -19,12 +19,12 @@ var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
 
 var invalid_name_initials = ["-"]; // Digits are assumed.
 
-var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}"];
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}", ":", "\n"];
 
 // Keywords are names with language-specific global meaning. 
 // [TODO consider if these can just be names.]
 var keywords = all_true("break", "case", "catch", "continue", "default",
-                  "delete", "else", "finally", "for", "function",
+                  "delete", "else", "finally", "for",
                   "if", "in", "instanceof", "switch", "this", "throw",
                   "try", "typeof", "while", "with", "λ", "*", "/",
                   "%", "+", "-", ">", "<", ">=", "<=", "+=", "-=",
@@ -39,10 +39,29 @@ var cchar = function (s, i, c) { return s[i] === c ? i+1 : false; }
 
 var spaces = function (s, i) { 
     for(; s[i] === ' '; i++);
+    if (s[i] === "/" && s[i+1] === "/")
+        for(; s[i] !== '\n'; i++);
     return i;
 }
 
 // *** Lexers ***
+
+var indent_stack = [0]; // TODO: hide in a closure, so I can lex concurrently
+var indent = function (s, i) {
+    var j = 1;
+    for(; s[i+j] === ' '; j++);
+    log(j);
+    if (j-1 > indent_stack[indent_stack.length-1]) { // Indent!
+        log("hp");
+        indent_stack.push(j);
+        return {from : i, to : i+j, type : "indent", value : "indent"}
+    }
+    if (j-1 < indent_stack[indent_stack.length-1]) { // dendent!
+        indent_stack.pop();
+        return {from : i, to : i, type : "dendent", value : "dendent"}
+    }
+    return false;
+}
 
 var delimited = function (s, i, del) {
     var j = i;
@@ -114,16 +133,32 @@ var matcher = function () {
 }();
 
 var token_at = function (s, i) {
-    var word;
+    var word, nl;
     i = spaces(s, i);
+
+    if (s[i] === "\n") {      // Indent, dedent
+       log("heis");
+       nl = indent(s, i);
+       if (nl) return nl;
+       i = spaces(s, i+1);
+    }
+
+    // Strings
     if (delimiters.indexOf(s[i]) !== -1) return delimited(s, i, s[i]);
+
+    // Numbers
     if (digit(s[i])) return number(s, i, s[i]);
+
     if (invalid_name_characters.indexOf(s[i]) !== -1 ||
         invalid_name_initials.indexOf(s[i]) !== -1){
          return {from: i, to: i+1, type: s[i], value: s[i]};
     }
     word = s.slice(i, s.length).split(matcher)[0];
+
+    // Keywords
     if (keywords[word]) return {from: i, to: i+word.length, type: word, value: word};;
+
+    // Literals
     return {from: i, to: i+word.length, type: "name", value: word};
 }
 

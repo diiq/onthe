@@ -40,9 +40,8 @@ var javascript = function (t) {
     }
 }
 
-var s = "(2 + {.name 3 + 3, .fars 6 * 2}) * [1, 2, 3] / 4 - ham.sand(foo[2], 5 + 6, gee)"
-try {
+var s = "(2 + {.name 3 + 3, .fars \n    6 * 2}) * \n[1, 2, 3] / 4 - ham.sand(foo[2], 5 + 6, gee)"
+
 log(lexer.tokenize(s));
 var t = parser.expression(0, parser.token_stream(s))
 log(javascript(t));
-} catch (e) { log(e) }

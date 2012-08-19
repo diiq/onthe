@@ -164,6 +164,8 @@ add_operator("{", 0, function(t, tokens){
                  }, 
                  function(t, tokens){  throw {name: "no"}; });
 
+add_operator("indent", -1);
+add_operator("dedent", -1);
 
 exports.expression = expression;
 exports.token_stream = token_stream;
