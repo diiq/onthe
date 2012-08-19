@@ -58,7 +58,7 @@ var delimited = function (s, i, del) {
         }
     }
     j += 1;
-    return {from: i, to: j, type: "literal", value: s.slice(i, j)};
+    return {from: i, to: j, type: "(literal)", value: s.slice(i, j)};
 }
 
 tests.delimited = function () {
@@ -74,7 +74,7 @@ var number = function (s, i) {
     retr = function () {
         return {from: index,
                 to: i,
-                type: "literal",
+                type: "(literal)",
                 value: ret}
     }
     // Integer
