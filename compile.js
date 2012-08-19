@@ -34,5 +34,5 @@ post_req.write(post_data);
 post_req.end();
 
 };
-closure_compiled(generator.generate("test.onthe"));
+closure_compiled(generator.generate(process.argv[2]));
         
