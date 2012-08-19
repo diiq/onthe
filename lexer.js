@@ -19,21 +19,21 @@ var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
 
 var invalid_name_initials = ["-"]; // Digits are assumed.
 
-var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}", ":", "\n"];
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}", ":", "n"];
 
 // Keywords are names with language-specific global meaning. 
 // [TODO consider if these can just be names.]
 var keywords = all_true("break", "case", "catch", "continue", "default",
                   "delete", "else", "finally", "for",
                   "if", "in", "instanceof", "switch", "this", "throw",
-                  "try", "typeof", "while", "with", "λ", "*", "/",
+                  "try", "typeof", "while", "λ", "*", "/",
                   "%", "+", "-", ">", "<", ">=", "<=", "+=", "-=",
-                  "==", "!=", "and", "or");
+                  "==", "!=", "and", "or", "=");
 
 // *** Character ,Classes ***
 // These are utilities for parsing.
 
-var digit = function (c) { return c <= 9 && c >= 0; }
+var digit = function (c) { return c <= "9" && c >= "0"; }
 
 var cchar = function (s, i, c) { return s[i] === c ? i+1 : false; }
 
@@ -47,18 +47,23 @@ var spaces = function (s, i) {
 // *** Lexers ***
 
 var indent_stack = [0]; // TODO: hide in a closure, so I can lex concurrently
+var dented = false;
 var indent = function (s, i) {
+    log(i, indent_stack, dented);
     var j = 1;
     for(; s[i+j] === ' '; j++);
-    log(j);
+    if (!dented) {
+        dented = true;
+        return {from : i, to : i, type : "dent", value : "dent"};
+    }
+    dented = false;
     if (j-1 > indent_stack[indent_stack.length-1]) { // Indent!
-        log("hp");
-        indent_stack.push(j);
-        return {from : i, to : i+j, type : "indent", value : "indent"}
+        indent_stack.push(j-1);
+        return {from : i, to : i+j, type : "indent", value : "indent"};
     }
     if (j-1 < indent_stack[indent_stack.length-1]) { // dendent!
         indent_stack.pop();
-        return {from : i, to : i, type : "dendent", value : "dendent"}
+        return {from : i, to : i, type : "dedent", value : "dedent"};
     }
     return false;
 }
@@ -136,13 +141,12 @@ var token_at = function (s, i) {
     var word, nl;
     i = spaces(s, i);
 
-    if (s[i] === "\n") {      // Indent, dedent
-       log("heis");
-       nl = indent(s, i);
-       if (nl) return nl;
-       i = spaces(s, i+1);
+    // Indent, dedent
+    if (s[i] === "\n") {
+        nl = indent(s, i);
+        if (nl) return nl;
+        i = spaces(s, i+1);
     }
-
     // Strings
     if (delimiters.indexOf(s[i]) !== -1) return delimited(s, i, s[i]);
 
@@ -156,10 +160,10 @@ var token_at = function (s, i) {
     word = s.slice(i, s.length).split(matcher)[0];
 
     // Keywords
-    if (keywords[word]) return {from: i, to: i+word.length, type: word, value: word};;
+    if (keywords[word]) return {from: i, to: i+word.length, type: word, value: word};
 
     // Literals
-    return {from: i, to: i+word.length, type: "name", value: word};
+    return {from: i, to: i+word.length, type: "(name)", value: word};
 }
 
 tests.token_at = function () {
@@ -179,12 +183,13 @@ var tokenize = function (s) {
         ret.push(token_at(s, i));
         i = ret[ret.length - 1].to;
     }
+    ret.push({from:i, to:i, type:"dent", value:"dent"});
     ret.push({from:i, to:i, type:"(end)", value:"(end)"});
     return ret;
 }
 
 exports.token_at = token_at;
 exports.tokenize = tokenize;
-
+for(var i="0"; i<="9"; i++) log(i);
 test.run(tests, "silent");
 
