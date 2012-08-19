@@ -1,3 +1,4 @@
+//[TODO: significant whitespace!]
 var test = require("./test.js");
 var tests = {};
 var log = console.log;
@@ -20,7 +21,8 @@ var invalid_name_initials = ["-"]; // Digits are assumed.
 
 var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " "];
 
-// Keywords are names with language-specific global meaning.
+// Keywords are names with language-specific global meaning. 
+// [TODO consider if these can just be names.]
 var keywords = all_true("break", "case", "catch", "continue", "default",
                   "delete", "else", "finally", "for", "function",
                   "if", "in", "instanceof", "switch", "this", "throw",
