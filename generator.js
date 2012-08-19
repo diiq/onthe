@@ -1,4 +1,5 @@
 var parser = require("./parser.js");
+var lexer = require("./lexer.js");
 var test = require("./test.js");
 var tests = {};
 var log =  console.log;
@@ -31,9 +32,17 @@ var javascript = function (t) {
         case "refinement":
             return javascript(t[1]) + "[" + javascript(t[2]) + "]";
 
+        case "object":
+            return  "{" + listify(t[1], ", ") + "}";
+
+        case "object_pair":
+            return javascript(t[1]) + " : " + javascript(t[2]);
     }
 }
 
-
-var t = parser.expression(0, parser.token_stream("(2 + 2) * [1, 2, 3] / 4 - ham.sand(foo[2], 5+6, gee)"));
+var s = "(2 + {.name 3 + 3, .fars 6 * 2}) * [1, 2, 3] / 4 - ham.sand(foo[2], 5 + 6, gee)"
+try {
+log(lexer.tokenize(s));
+var t = parser.expression(0, parser.token_stream(s))
 log(javascript(t));
+} catch (e) { log(e) }

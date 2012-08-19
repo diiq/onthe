@@ -19,7 +19,7 @@ var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
 
 var invalid_name_initials = ["-"]; // Digits are assumed.
 
-var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " "];
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}"];
 
 // Keywords are names with language-specific global meaning. 
 // [TODO consider if these can just be names.]

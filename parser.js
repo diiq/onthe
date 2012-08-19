@@ -12,9 +12,8 @@ Array.prototype.peek = function () { return this[this.length - 1]; };
 var token_stream = function (s) { return lexer.tokenize(s).reverse(); };
 
 var expect = function (t, tokens) {
-    log(tokens.peek()); 
     if (tokens.peek().type !== t) {
-        throw {name: "expected", info: t}
+        throw {name: "expected", info: [t, tokens.peek()]}
     }
     tokens.pop();
     return true;
@@ -114,6 +113,7 @@ add_operator("(", 9,
                  function(t, tokens){
                      // paren'd expression 
                      var exp = expression(0, tokens);
+                 log(exp);
                      expect(")", tokens);
                      return exp;
                  }, 
@@ -143,6 +143,26 @@ add_operator("[", 9,
                      expect("]", tokens);
                      return ["refinement", left, arg];
                  });
+
+add_operator("}", -1);
+add_operator("{", 0, function(t, tokens){
+                     // Array literal
+                     var mems = [];
+                     if (maybe(".", tokens)) {
+                        mems.push(["object_pair", 
+                                   ["literal", tokens.pop()], 
+                                   expression(0, tokens)]);
+                     }
+                     while (maybe(",", tokens)) {
+                         expect(".", tokens);
+                         mems.push(["object_pair", 
+                                    ["literal", tokens.pop()], 
+                                    expression(0, tokens)]);
+                     }
+                     expect("}", tokens);
+                     return ["object", mems];
+                 }, 
+                 function(t, tokens){  throw {name: "no"}; });
 
 
 exports.expression = expression;
