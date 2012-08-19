@@ -1,5 +1,11 @@
 a = λ(a, b):
-    foul = weather
+    foul = weather[fo](golf)
     if true:
         so_do(one_thing)
         but = then * another
+    switch 5:
+        case 4:
+            brutal(ism)
+        case 5: print("do it", all)
+        default:
+            sing[praises](to_god)

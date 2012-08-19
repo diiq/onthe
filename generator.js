@@ -53,10 +53,19 @@ var javascript = function (t) {
             return " function (" + listify(t[1], ",") + ")" + javascript(t[2]);
 
         case "block" :
-             return "{" + listify(t[1], ";") + ";}";
+            return "{" + listify(t[1], ";") + ";}";
+
+        case "switch" :
+            return "switch (" + javascript(t[1]) + ") {" + listify(t[2], "\n") + "}";
+
+        case "case" :
+            return "case (" + javascript(t[1]) + ") : " + javascript(t[2]);
+
+        case "default" :
+            return "default: " + javascript(t[1]);
 
         default :
-             return t[0] + " (" + javascript(t[1]) + ");";
+            return t[0] + " (" + javascript(t[1]) + ");";
     }
 }
 

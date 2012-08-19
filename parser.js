@@ -20,13 +20,14 @@ var expression = function (prev_precedence, tokens) {
     next = tokens.peek(); 
     while (prev_precedence < precedence(next)) {
              current = tokens.pop();
-             next = tokens.peek();
              left = fill(current, left, tokens);
+             next = tokens.peek();
     }
     return left;
 }
 
 var fill = function (t, left, tokens) {
+    log(t);
     if (tokens === undefined){
         tokens = left;
         return operators[t.type].prefix(t, tokens)
@@ -217,10 +218,10 @@ operators["λ"].prefix = function (t, tokens) {
 add_infix("?", 1);
 operators["?"].infix = function (t, left, tokens) {
     var test, then, els;
-    test = expression(0, tokens));
+    test = expression(0, tokens);
     expect(":", tokens);
-    els = expression(0, tokens));
-    return ["?", test, then els];
+    els = expression(0, tokens);
+    return ["?", test, then, els];
 }
 
 
@@ -229,7 +230,7 @@ operators["?"].infix = function (t, left, tokens) {
 add_infix_class("=", "+=", "-=", 1); // magically takes care of assignment.
 
 statements["break"] = function (tokens) {
-    t = maybe("(name)");
+    t = maybe("(name)", tokens);
     return ["break", t];
 }
 
@@ -245,6 +246,26 @@ statements["if"] = function (tokens) {
         }
     }
     return ["if", test, then, els];
+}
+
+statements["switch"] = function (tokens) {
+    var sw, cases = [], t, b;
+    sw = expression(0, tokens);
+    expect(":", tokens);
+    expect("dent", tokens);
+    expect("indent", tokens);
+    while (maybe("case", tokens)) {
+        t = expression(0, tokens);
+        b = block(tokens);
+        cases.push(["case", t, b]);
+        maybe("dent", tokens);
+    }
+    if (maybe("default", tokens)){
+        cases.push(["default", block(tokens)]);
+    }
+    expect("dent", tokens);
+    expect("dedent", tokens);
+    return ["switch", sw, cases];
 }
 
 var block = function (tokens) {
