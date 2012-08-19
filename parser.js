@@ -108,5 +108,6 @@ add_infix("/", 60);
 add_infix("+", 10);
 add_infix("-", 10);
 
-log(operators)
-log(expression(0, token_stream("2 + 2 * 3 / 4 - 5")))
+log(operators);
+log(token_stream("2 + 2 * 3 / 4 - 5"));
+log(expression(0, token_stream("2 + 2 * 3 / 4 - 5")));

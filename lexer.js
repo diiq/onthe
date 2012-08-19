@@ -18,7 +18,7 @@ var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
 
 var invalid_name_initials = ["-"]; // Digits are assumed.
 
-var invalid_name_characters = ["(", ")", "[", "]", ",", ";", " "];
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " "];
 
 // Keywords are names with language-specific global meaning.
 var keywords = all_true("break", "case", "catch", "continue", "default",
@@ -56,7 +56,7 @@ var delimited = function (s, i, del) {
         }
     }
     j += 1;
-    return {from: i, to: j, type: del, value: s.slice(i, j)};
+    return {from: i, to: j, type: "literal", value: s.slice(i, j)};
 }
 
 tests.delimited = function () {
@@ -72,7 +72,7 @@ var number = function (s, i) {
     retr = function () {
         return {from: index,
                 to: i,
-                type: "number",
+                type: "literal",
                 value: ret}
     }
     // Integer
@@ -131,9 +131,23 @@ tests.token_at = function () {
     s = "call while fart \"helllo\" (/ag asdat f/, 2)";
     while (i < s.length) {
         t = token_at(s, i);
-        log(t);
         i = t.to;
     }
-    return t.value == ')';
+    return t.value === ')';
 }
+
+var tokenize = function (s) {
+    var ret = [], i = 0;
+    while (i < s.length) {
+        ret.push(token_at(s, i));
+        i = ret[ret.length - 1].to;
+    }
+    ret.push({from:i, to:i, type:"(end)", value:"(end)"});
+    return ret;
+}
+
+exports.token_at = token_at;
+exports.tokenize = tokenize;
+
 test.run(tests);
+
