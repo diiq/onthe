@@ -11,19 +11,7 @@ Array.prototype.peek = function () { return this[this.length - 1]; };
 
 var token_stream = function (s) { return lexer.tokenize(s).reverse(); };
 
-var expect = function (t, tokens) {
-    log(t, tokens.peek());
-    if (tokens.peek().type !== t) {
-        throw {name: "expected", info: [t, tokens.peek()]}
-    }
-    tokens.pop();
-    return true;
-}
-
-var maybe = function (t, tokens) { 
-    if (tokens.peek().type !== t) return false;
-    return tokens.pop();
-}
+// Parsing expressions
 
 var expression = function (prev_precedence, tokens) {
     var current, left;
@@ -39,12 +27,11 @@ var expression = function (prev_precedence, tokens) {
 }
 
 var fill = function (t, left, tokens) {
-    log("-->", t);
     if (tokens === undefined){
         tokens = left;
         return operators[t.type].prefix(t, tokens)
     }
-    return operators[t.type].postfix(t, left, tokens) 
+    return operators[t.type].infix(t, left, tokens) 
 }
 
 var precedence = function (t) {
@@ -53,13 +40,13 @@ var precedence = function (t) {
 
 var operators = {}
 
-var add_operator = function (type, precedence, prefix, postfix) {
-    operators[type] = {prefix:prefix, postfix:postfix, precedence:precedence};
+var add_operator = function (type, precedence, prefix, infix) {
+    operators[type] = {prefix:prefix, infix:infix, precedence:precedence};
 }
 
 var add_infix = function (type, precedence) {
     add_operator(type, precedence,
-                 function (){  throw {name: "no"}; }, 
+                 function (t){  log(type, t); throw {name: "no"}; }, 
                  function (t, left, tokens) { 
                      return ["infix", t, left, expression(this.precedence, tokens)];
                  });
@@ -77,6 +64,43 @@ var add_infix_class = function () {
     for(var i =0; i < arguments.length - 1; i++) {
         add_infix(arguments[i], arguments[arguments.length-1]);
     }
+}
+
+// Parsing statements
+
+var expect = function (t, tokens) {
+    log(t, tokens.peek());
+    if (tokens.peek().type !== t) {
+        throw {name: "expected", info: [t, tokens.peek()]}
+    }
+    tokens.pop();
+    return true;
+}
+
+var maybe = function (t, tokens) { 
+    if (tokens.peek().type !== t) return false;
+    return tokens.pop();
+}
+
+var statements = {};
+
+var statement = function (tokens) {
+    var ret;
+    if (statements[tokens.peek().type]) {
+       ret = statements[tokens.pop().type](tokens)
+    } else {
+       ret = expression(0, tokens);
+    }
+    expect("dent", tokens);
+    return ret;
+}
+
+var statementi = function (tokens) {
+    var ret = [];
+    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
+       ret.push(statement(tokens));
+    }
+    return ret;
 }
 
 // Operators for expressions:
@@ -120,7 +144,6 @@ add_operator("(", 9,
                  function(t, tokens){
                      // paren'd expression 
                      var exp = expression(0, tokens);
-                 log(exp);
                      expect(")", tokens);
                      return exp;
                  }, 
@@ -130,6 +153,7 @@ add_operator("(", 9,
                      while (maybe(",", tokens)) {
                          args.push(expression(0, tokens));
                      }
+                     expect(")", tokens);
                      return ["invocation", left, args];
                  });
 
@@ -152,7 +176,8 @@ add_operator("[", 9,
                  });
 
 add_operator("}", -1);
-add_operator("{", 0, function(t, tokens){
+add_infix("{", 0);
+operators["{"].postfix = function(t, tokens){
                      // Array literal
                      var mems = [];
                      if (maybe(".", tokens)) {
@@ -168,19 +193,41 @@ add_operator("{", 0, function(t, tokens){
                      }
                      expect("}", tokens);
                      return ["object", mems];
-                 }, 
-                 function(t, tokens){  throw {name: "no"}; });
+                 };
 
 add_operator("indent", -1);
 add_operator("dedent", -1);
 add_operator("dent", -1);
 add_operator(":", -1);
+add_prefix("λ", 1);
+operators["λ"].prefix = function (t, tokens) {
+    var args = [], code
+    if (maybe("(", tokens)) {
+       if (!maybe(")", tokens)){
+           do {
+               args.push(expression(0, tokens));
+           } while(maybe(",", tokens));
+           expect(")", tokens);
+       }
+    }             
+    code = block(tokens)
+    return ["λ", args, code];
+}
+
+add_infix("?", 1);
+operators["?"].infix = function (t, left, tokens) {
+    var test, then, els;
+    test = expression(0, tokens));
+    expect(":", tokens);
+    els = expression(0, tokens));
+    return ["?", test, then els];
+}
+
 
 // OK, time for statements!
 
 add_infix_class("=", "+=", "-=", 1); // magically takes care of assignment.
 
-var statements = {};
 statements["break"] = function (tokens) {
     t = maybe("(name)");
     return ["break", t];
@@ -213,25 +260,6 @@ var block = function (tokens) {
     return ret;
 }
 
-var statement = function (tokens) {
-    var ret;
-    log("this", tokens.peek())
-    if (statements[tokens.peek().type]) {
-       ret = statements[tokens.pop().type](tokens)
-    } else {
-       ret = expression(0, tokens);
-    }
-    expect("dent", tokens);
-    return ret;
-}
-
-var statementi = function (tokens) {
-    var ret = [];
-    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
-       ret.push(statement(tokens));
-    }
-    return ret;
-}
 
 
 exports.statement = statement;

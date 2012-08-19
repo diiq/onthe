@@ -38,6 +38,9 @@ var javascript = function (t) {
         case "object_pair":
             return javascript(t[1]) + " : " + javascript(t[2]);
 
+        case "?":
+            return javascript(t[1]) + " ? " + javascript(t[2]) + " : " + javascript(t[3]);
+
         case "if" :
             return " if (" +javascript(t[1]) + ")" +
                            javascript(t[2]) +
@@ -56,8 +59,9 @@ var javascript = function (t) {
     }
 }
 
-var s = "if (foo):\n    bar.big = baz\n    3 + 4\ngoo.gah"
+var fs = require("fs");
+s = fs.readFileSync('test.onthe', 'ascii');
 
-log(lexer.tokenize(s));
+log(parser.token_stream(s))
 var t = parser.statement(parser.token_stream(s))
 log(javascript(t));

@@ -49,7 +49,6 @@ var spaces = function (s, i) {
 var indent_stack = [0]; // TODO: hide in a closure, so I can lex concurrently
 var dented = false;
 var indent = function (s, i) {
-    log(i, indent_stack, dented);
     var j = 1;
     for(; s[i+j] === ' '; j++);
     if (!dented) {
@@ -191,4 +190,3 @@ var tokenize = function (s) {
 exports.token_at = token_at;
 exports.tokenize = tokenize;
 test.run(tests, "silent");
-
