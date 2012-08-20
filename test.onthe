@@ -11,5 +11,5 @@ a = λ(a, b):
             sing[praises](to_god)
     if baby:
         things(done)
-    else:
+    else if foo:
         babeee

@@ -25,62 +25,15 @@ var compose = function (str, arr) {
     return str.replace(/\%(L.+?)?\d/g, rep);
 }
 
+var generators = {};
+
 var javascript = function (t) {
-    switch (t[0]) {
-        case "infix": 
-            return compose("(%2 " + t[1].value + " %3)", t);
- 
-        case "literal":
-            return t[1].value;
-
-        case "invocation":
-            return compose("%1(%L,2)", t);
-
-        case "array":
-            return  compose("[%L,1]", t);
-
-        case "refinement":
-            return compose("%1[%2]", t);
-
-        case "object":
-            return  compose("{%L,1}", t);
-
-        case "object_pair":
-            return compose("%1:%2", t);
-
-        case "?": // ternary
-            return compose("%1?%2:%3", t);
-
-        case "if" :
-            return compose((t[3] ? "if(%1)%2else %3" :"if(%1)%2"), t);
-
-        case "while" :
-            return compose(" while(%1)%2", t);
-
-        case "λ" :
-            return compose(" function (%L,1)%2", t)
-
-        case "block" :
-            return compose("{%L;1;}", t);
-
-        case "switch" :
-            return compose(" switch (%1){%L;2}", t);
-
-        case "case" :
-            return compose("case (%1):%2", t);
-
-        case "default" :
-            return compose("default:%1", t);
-
-        case "for" :
-            return compose(" for (%1 = %2; %1 < %3; %1 += %4) %5", t);
-
-        default :
-            return compose(" %0 %1;", t);
-    }
+    if (t[0] === "literal") return t[1].value;
+    return compose(generators[t[0]], t);
 }
 
 var fs = require("fs");
+
 
 var generate = function (file) {
     s = fs.readFileSync(file, 'ascii');
@@ -88,5 +41,38 @@ var generate = function (file) {
     var t = parser.statement(parser.token_stream(s))
     return javascript(t);
 }
+
+generators["infix"] = "(%2%1%3)";
+ 
+generators["invocation"] = "%1(%L,2)";
+
+generators["array"] = "[%L,1]";
+
+generators["refinement"] = "%1[%2]";
+
+generators["object"] = "{%L,1}";
+
+generators["object_pair"] = "%1:%2";
+
+generators["?"] = "%1?%2:%3";
+
+generators["if"] = "if(%1)%2";
+
+generators["ife"] = "if(%1)%2else %3";
+
+generators["while"] = " while(%1)%2";
+
+generators["λ"] = " function (%L,1)%2";
+
+generators["block"] = "{%L;1;}";
+
+generators["switch"] = " switch (%1){%L;2}";
+
+generators["case"] = "case (%1):%2";
+
+generators["default"] = "default:%1";
+
+generators["for"] = " for (%1 = %2; %1 < %3; %1 += %4) %5";
+
 exports.javascript = javascript;
 exports.generate = generate;

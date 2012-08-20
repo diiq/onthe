@@ -50,7 +50,7 @@ var add_infix = function (type, precedence) {
     add_operator(type, precedence,
                  function (t){  log(type, t); throw {name: "no"}; }, 
                  function (t, left, tokens) { 
-                     return ["infix", t, left, expression(this.precedence, tokens)];
+                     return ["infix", ["literal", t], left, expression(this.precedence, tokens)];
                  });
 };
 
@@ -68,6 +68,22 @@ var add_infix_class = function () {
     }
 }
 
+var add_functiony = function(trigger) {
+    add_prefix(trigger, 1);
+    operators[trigger].prefix = function (t, tokens) {
+        var args = [], code
+        if (maybe("(", tokens)) {
+            if (!maybe(")", tokens)){
+                do {
+                    args.push(expression(0, tokens));
+                } while(maybe(",", tokens));
+                expect(")", tokens);
+            }
+        }             
+        code = block(tokens)
+        return [trigger, args, code];
+    }
+}
 // Parsing statements
 
 var expect = function (t, tokens) {
@@ -123,15 +139,13 @@ add_prefix("not", 8);
 add_infix_class("*", "/", "%", 7);
 
 add_infix("+", 6);
-add_operator("-", 6, 
+add_infix("-", 6);
+operators["-"].prefix = 
                  function(t, tokens){ 
                      return ["prefix", t, 
                              expression(0, tokens)];
-                 }, 
-                 function(t, left, tokens) { 
-                     return ["infix", t, left, 
-                             expression(0, tokens)];
-                 });
+                 }
+
 
 add_infix_class("==", "!=", ">=", "<=", ">", "<", 4);
 
@@ -192,20 +206,7 @@ operators["{"].postfix = function(t, tokens){
                  };
 
 
-add_prefix("λ", 1);
-operators["λ"].prefix = function (t, tokens) {
-    var args = [], code
-    if (maybe("(", tokens)) {
-       if (!maybe(")", tokens)){
-           do {
-               args.push(expression(0, tokens));
-           } while(maybe(",", tokens));
-           expect(")", tokens);
-       }
-    }             
-    code = block(tokens)
-    return ["λ", args, code];
-}
+
 
 add_infix("?", 1);
 operators["?"].infix = function (t, left, tokens) {
@@ -216,6 +217,9 @@ operators["?"].infix = function (t, left, tokens) {
     return ["?", test, then, els];
 }
 
+add_functiony("λ");
+add_functiony("scope");
+add_functiony("constructor");
 
 // OK, time for statements!
 
@@ -230,7 +234,6 @@ statements["if"] = function (tokens) {
     var test, then, els;
     test = expression(0, tokens);
     then = block(tokens);
-    log(tokens);
     expect("dent", tokens);
     if (maybe("else", tokens)) {
         if (maybe("if", tokens)) {
@@ -238,10 +241,11 @@ statements["if"] = function (tokens) {
         } else {
             els = block(tokens);
         }
+    return ["ife", test, then, els];
     } else {
         tokens.push({type:"dent", value:"dent"});
     }
-    return ["if", test, then, els];
+    return ["if", test, then];
 }
 
 statements["switch"] = function (tokens) {
