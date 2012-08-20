@@ -1,4 +1,4 @@
-lexer = require("./lexer.js")
+var lexer = require("./lexer.js")
 var test = require("./test.js");
 var tests = {};
 var log =  console.log;
@@ -35,7 +35,9 @@ var fill = function (t, left, tokens) {
 }
 
 var precedence = function (t) {
-    return operators[t.type].precedence;
+    if (operators[t.type])
+        return operators[t.type].precedence;
+    return -1;
 }
 
 var operators = {}
@@ -136,9 +138,6 @@ add_infix_class("==", "!=", ">=", "<=", ">", "<", 4);
 add_infix("and", 3);
 add_infix("or", 2);
 
-add_operator(",", -1);
-add_operator(")", -1);
- 
 add_operator("(", 9, 
                  function(t, tokens){
                      // paren'd expression 
@@ -156,7 +155,6 @@ add_operator("(", 9,
                      return ["invocation", left, args];
                  });
 
-add_operator("]", -1);
 add_operator("[", 9, 
                  function(t, tokens){
                      // Array literal
@@ -174,7 +172,6 @@ add_operator("[", 9,
                      return ["refinement", left, arg];
                  });
 
-add_operator("}", -1);
 add_infix("{", 0);
 operators["{"].postfix = function(t, tokens){
                      // Array literal
@@ -194,10 +191,7 @@ operators["{"].postfix = function(t, tokens){
                      return ["object", mems];
                  };
 
-add_operator("indent", -1);
-add_operator("dedent", -1);
-add_operator("dent", -1);
-add_operator(":", -1);
+
 add_prefix("λ", 1);
 operators["λ"].prefix = function (t, tokens) {
     var args = [], code
@@ -235,13 +229,17 @@ statements["break"] = function (tokens) {
 statements["if"] = function (tokens) {
     var test, then, els;
     test = expression(0, tokens);
-    then = block(tokens)
+    then = block(tokens);
+    log(tokens);
+    expect("dent", tokens);
     if (maybe("else", tokens)) {
         if (maybe("if", tokens)) {
             els = statements["if"](tokens);
         } else {
             els = block(tokens);
         }
+    } else {
+        tokens.push({type:"dent", value:"dent"});
     }
     return ["if", test, then, els];
 }
@@ -279,7 +277,29 @@ var block = function (tokens) {
     return ret;
 }
 
-
+statements["for"] = function (tokens) {
+    var v, n, from, to, by, b;
+    v = expression(0, tokens); // test for name/
+    switch (tokens.pop().type) {
+        case "in":
+            n = expression(0, tokens);
+            b = block(tokens);
+            return ["forin", v, n];
+        case "from":
+            from = expression(0, tokens);
+            expect("to", tokens);
+            to = expression(0, tokens);
+            if (maybe("by", tokens)) {
+                by = expression(0, tokens);
+            } else {
+                by = ["literal", {type:"(literal)", value:1}];
+            }
+            b = block(tokens);
+            return ["for", v, from, to, by, b];
+        default:
+            throw {name: "bad_for"};
+    }
+}
 
 exports.statement = statement;
 exports.expression = expression;

@@ -24,11 +24,11 @@ var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}",
 // Keywords are names with language-specific global meaning. 
 // [TODO consider if these can just be names.]
 var keywords = all_true("break", "case", "catch", "continue", "default",
-                  "delete", "else", "finally", "for",
-                  "if", "in", "instanceof", "switch", "this", "throw",
+                  "delete", "do", "else", "finally", "for",
+                  "if", "in", "instanceof", "switch", "throw",
                   "try", "typeof", "while", "λ", "*", "/",
                   "%", "+", "-", ">", "<", ">=", "<=", "+=", "-=",
-                  "==", "!=", "and", "or", "=");
+                  "==", "!=", "and", "or", "=", "let", "from", "to", "by");
 
 // *** Character ,Classes ***
 // These are utilities for parsing.

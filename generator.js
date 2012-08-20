@@ -14,58 +14,69 @@ var listify = function (list, sep) {
     return ret;
 }
 
+var compose = function (str, arr) {
+    var rep, i=-1;
+    rep = function (m) {
+        if (m[1] === "L") {
+            return listify(arr[m.slice(3, m.length)], m[2]);
+        }
+        return javascript(arr[m.slice(1, m.length)]);
+    }
+    return str.replace(/\%(L.+?)?\d/g, rep);
+}
+
 var javascript = function (t) {
     switch (t[0]) {
         case "infix": 
-            return ("(" + javascript(t[2]) + 
-                    " " + t[1].value + " " + 
-                          javascript(t[3]) + ")"); 
+            return compose("(%2 " + t[1].value + " %3)", t);
+ 
         case "literal":
             return t[1].value;
 
         case "invocation":
-            return javascript(t[1]) + "(" + listify(t[2], ", ") + ")";
+            return compose("%1(%L,2)", t);
 
         case "array":
-            return  "[" + listify(t[1], ", ") + "]";
+            return  compose("[%L,1]", t);
 
         case "refinement":
-            return javascript(t[1]) + "[" + javascript(t[2]) + "]";
+            return compose("%1[%2]", t);
 
         case "object":
-            return  "{" + listify(t[1], ", ") + "}";
+            return  compose("{%L,1}", t);
 
         case "object_pair":
-            return javascript(t[1]) + " : " + javascript(t[2]);
+            return compose("%1:%2", t);
 
         case "?": // ternary
-            return javascript(t[1]) + " ? " + javascript(t[2]) + " : " + javascript(t[3]);
+            return compose("%1?%2:%3", t);
 
         case "if" :
-            return " if (" +javascript(t[1]) + ")" +
-                           javascript(t[2]) +
-                   (t[3] ? javascript(t[3]) : "");
+            return compose((t[3] ? "if(%1)%2else %3" :"if(%1)%2"), t);
 
         case "while" :
-            return " while (" + javascript(t[1]) + ")" + javascript(t[2]);
+            return compose(" while(%1)%2", t);
 
         case "λ" :
-            return " function (" + listify(t[1], ",") + ")" + javascript(t[2]);
+            return compose(" function (%L,1)%2", t)
 
         case "block" :
-            return "{" + listify(t[1], ";") + ";}";
+            return compose("{%L;1;}", t);
 
         case "switch" :
-            return "switch (" + javascript(t[1]) + ") {" + listify(t[2], "\n") + "}";
+            return compose(" switch (%1){%L;2}", t);
 
         case "case" :
-            return "case (" + javascript(t[1]) + ") : " + javascript(t[2]);
+            return compose("case (%1):%2", t);
 
         case "default" :
-            return "default: " + javascript(t[1]);
+            return compose("default:%1", t);
+
+        case "for" :
+            return compose(" for (%1 = %2; %1 < %3; %1 += %4) %5", t);
 
         default :
-            return t[0] + " (" + javascript(t[1]) + ");";
+            return compose(" %0 %1;", t);
     }
 }
 

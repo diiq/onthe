@@ -65,7 +65,7 @@
       (beginning-of-line)
       (skip-chars-backward "\n ")
 
-      (if (eq (char-before) ?:)
+      (if (or (eq (char-before) ?:) (eq (char-before) ?{))
           (setq poo 4)
         (setq poo 0))
 

@@ -34,5 +34,6 @@ post_req.write(post_data);
 post_req.end();
 
 };
+console.log(generator.generate(process.argv[2]));
 closure_compiled(generator.generate(process.argv[2]));
         

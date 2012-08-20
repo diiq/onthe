@@ -1,6 +1,6 @@
 a = λ(a, b):
     foul = weather[fo](golf)
-    if true:
+    for i from 1 to 10:
         so_do(one_thing)
         but = then * another
     switch 5:
@@ -9,3 +9,7 @@ a = λ(a, b):
         case 5: print("do it", all)
         default:
             sing[praises](to_god)
+    if baby:
+        things(done)
+    else:
+        babeee
