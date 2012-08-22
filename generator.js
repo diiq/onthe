@@ -1,12 +1,12 @@
+var fs = require("fs");
 var parser = require("./parser.js");
-var lexer = require("./lexer.js");
 var test = require("./test.js");
+
 var tests = {};
 var log =  console.log;
 
-
-// tree recursion
 var listify = function (list, sep) {
+    if (!list || list[0] === undefined) return "";
     var ret = javascript(list[0]);
     for (var i=1; i<list.length; i++){
         ret += sep + javascript(list[i]);
@@ -31,9 +31,6 @@ var javascript = function (t) {
     if (t[0] === "literal") return t[1].value;
     return compose(generators[t[0]], t);
 }
-
-var fs = require("fs");
-
 
 var generate = function (file) {
     s = fs.readFileSync(file, 'ascii');
@@ -60,15 +57,19 @@ generators["if"] = "if(%1)%2";
 
 generators["ife"] = "if(%1)%2else %3";
 
-generators["while"] = " while(%1)%2";
+generators["while"] = "while(%1)%2";
 
-generators["λ"] = " function (%L,1)%2";
+generators["λ"] = "function (%L,1)%2";
+
+generators["scope"] = "+function (%L,1)%2(%L,1)";
+
+generators["constructor"] = "+function(){var It=function(%L,1)%2; return function(%L,1){return new It();};}()";
 
 generators["block"] = "{%L;1;}";
 
-generators["switch"] = " switch (%1){%L;2}";
+generators["switch"] = "switch(%1){%L;2}";
 
-generators["case"] = "case (%1):%2";
+generators["case"] = "case(%1):%2";
 
 generators["default"] = "default:%1";
 

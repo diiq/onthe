@@ -28,7 +28,8 @@ var keywords = all_true("break", "case", "catch", "continue", "default",
                   "if", "in", "instanceof", "switch", "throw",
                   "try", "typeof", "while", "λ", "*", "/",
                   "%", "+", "-", ">", "<", ">=", "<=", "+=", "-=",
-                  "==", "!=", "and", "or", "=", "let", "from", "to", "by");
+                  "==", "!=", "and", "or", "=", "let", "from", "to", "by", 
+                  "scope", "constructor");
 
 // *** Character ,Classes ***
 // These are utilities for parsing.
@@ -178,6 +179,7 @@ tests.token_at = function () {
 
 var tokenize = function (s) {
     var ret = [], i = 0;
+    indent_stack = [0]; dented = false;
     while (i < s.length) {
         ret.push(token_at(s, i));
         i = ret[ret.length - 1].to;

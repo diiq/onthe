@@ -26,9 +26,14 @@ var expression = function (prev_precedence, tokens) {
     return left;
 }
 
+var operators = {}
+
 var fill = function (t, left, tokens) {
     if (tokens === undefined){
         tokens = left;
+        if (operators[t.type] === undefined) {
+            log(t.type, "UNDEFINED!");
+        }
         return operators[t.type].prefix(t, tokens)
     }
     return operators[t.type].infix(t, left, tokens) 
@@ -39,8 +44,6 @@ var precedence = function (t) {
         return operators[t.type].precedence;
     return -1;
 }
-
-var operators = {}
 
 var add_operator = function (type, precedence, prefix, infix) {
     operators[type] = {prefix:prefix, infix:infix, precedence:precedence};
@@ -79,8 +82,8 @@ var add_functiony = function(trigger) {
                 } while(maybe(",", tokens));
                 expect(")", tokens);
             }
-        }             
-        code = block(tokens)
+        }     
+        code = block(tokens);
         return [trigger, args, code];
     }
 }
@@ -88,6 +91,7 @@ var add_functiony = function(trigger) {
 
 var expect = function (t, tokens) {
     if (tokens.peek().type !== t) {
+        log([t, tokens.peek()])
         throw {name: "expected", info: [t, tokens.peek()]}
     }
     tokens.pop();
@@ -161,11 +165,13 @@ add_operator("(", 9,
                  }, 
                  function(t, left, tokens) {
                      // invocation
-                     var args = [expression(0, tokens)];
-                     while (maybe(",", tokens)) {
-                         args.push(expression(0, tokens));
+                     if (!maybe(")", tokens)){
+                         var args = [expression(0, tokens)];
+                         while (maybe(",", tokens)) {
+                             args.push(expression(0, tokens));
+                         }
+                         expect(")", tokens);
                      }
-                     expect(")", tokens);
                      return ["invocation", left, args];
                  });
 

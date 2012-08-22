@@ -25,7 +25,6 @@ var post_req = http.request(post_options, function(res) {
   res.setEncoding('utf8');
   res.on('data', function (chunk) {
     console.log(chunk);
-    ret += chunk;
   });
 });
 
@@ -34,6 +33,5 @@ post_req.write(post_data);
 post_req.end();
 
 };
-console.log(generator.generate(process.argv[2]));
+
 closure_compiled(generator.generate(process.argv[2]));
-        
