@@ -14,12 +14,12 @@ var tokens;
 var token_stream = function (s) { tokens = lexer.tokenize(s).reverse(); };
 // Parsing expressions
 
-var expression = function (prev_precedence) {
+var expression = function (precedence_prev) {
     var current, left;
     current = tokens.pop();
     left = fill(current);
     next = tokens.peek(); 
-    while (prev_precedence < precedence(next)) {
+    while (precedence_prev < precedence(next)) {
              current = tokens.pop();
              left = fill(current, left);
              next = tokens.peek();
