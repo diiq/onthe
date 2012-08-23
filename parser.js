@@ -17,6 +17,7 @@ var token_stream = function (s) { tokens = lexer.tokenize(s).reverse(); };
 var expression = function (precedence_prev) {
     var current, left;
     current = tokens.pop();
+    log(current);
     left = fill(current);
     next = tokens.peek(); 
     while (precedence_prev < precedence(next)) {
@@ -29,53 +30,51 @@ var expression = function (precedence_prev) {
 
 var an_expression = function () { return expression(0); };
 
-var operators = {}
+var prefixes = {}
+var infixes = {}
+var precedences = {}
 
 var fill = function (t, left) {
     if (left === undefined){
-        if (operators[t.type] === undefined) {
-            log(t.type, "UNDEFINED!");
+        if (prefixes[t.type] === undefined) {
+            log("Undefined prefix operator:");
+            op_fail(t);
         }
-        return operators[t.type].prefix(t)
+        return prefixes[t.type](t);
+    } else {
+        if (infixes[t.type] === undefined) {
+            log("Undefined prefix operator:");
+            op_fail(t, left);
+        }
+        return infixes[t.type](t, left);
     }
-    return operators[t.type].infix(t, left) 
 }
 
 var precedence = function (t) {
-    if (operators[t.type])
-        return operators[t.type].precedence;
-    return -1;
+    return precedences[t.type];
 }
 
-var add_operator = function (type, precedence, prefix, infix) {
-    operators[type] = {prefix:prefix, infix:infix, precedence:precedence};
-}
-
-var add_infix = function (type, precedence) {
-    add_operator(type, precedence,
-                 function (t){  log(type, t); throw {name: "no"}; }, 
-                 function (t, left) { 
-                     return ["infix", ["literal", t], left, expression(this.precedence)];
-                 });
+var op_fail = function (t, left) {
+    log("Failed operation:", type, t, left); 
+    throw {name: "failop"};
 };
 
-var add_prefix = function (type, precedence) {
-    add_operator(type, precedence,
-                 function(t){
-                     return ["prefix", t, expression(this.precedence)];
-                 }, 
-                 function (t) { log(type, t); throw {name: "no"}; });
+var infix = function (t, left) { 
+    return ["infix", ["literal", t], left, expression(precedence(t.type))];
 };
 
-var add_infix_class = function () {
-    for(var i =0; i < arguments.length - 1; i++) {
-        add_infix(arguments[i], arguments[arguments.length-1]);
-    }
-}
+var prefix = function (t, left) { 
+    return ["infix", ["literal", t], expression(precedence(t.type))];
+};
 
-var add_functiony = function(trigger) {
-    add_prefix(trigger, 1);
-    operators[trigger].prefix = function (t) {
+
+var operator = function (type, p, infix, prefix) {
+    prefix && (prefixes[type] = prefix);
+    infix && (infixes[type] = infix);
+    precedences[type] = p;
+};
+
+var functiony = function (t) {
         var args = [], code
         if (maybe("(")) {
             if (!maybe(")")){
@@ -86,10 +85,8 @@ var add_functiony = function(trigger) {
             }
         }     
         code = block();
-        return [trigger, args, code];
-    }
-}
-// Parsing statements
+        return [t.type, args, code];
+    };
 
 var expect = function () {
     var expectone = function (t) {
@@ -111,60 +108,45 @@ var maybe = function (t) {
     return tokens.pop();
 }
 
-var statements = {};
-
-var statement = function () {
-    var ret;
-    if (statements[tokens.peek().type]) {
-       ret = statements[tokens.pop().type]()
-    } else {
-       ret = an_expression();
-    }
-    expect("dent");
-    return ret;
-}
-
-var statementi = function () {
-    var ret = [];
-    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
-       ret.push(statement());
-    }
-    return ret;
-}
 
 // Operators for expressions:
 
-add_operator("(literal)", 0,
-              function(t){ return ["literal", t]; });
+operator("(literal)",   0, null, function(t){ return ["literal", t]; });
+operator("(end)", -1);
+operator(".", 10, infix);
+operator("not", 8, null, prefix);
 
-add_operator("(end)", 0);
+operator("*", 7, infix); 
+operator("/", 7, infix); 
+operator("%", 7, infix); 
 
-add_infix(".", 10);
-add_prefix("not", 8);
+operator("+", 6, infix);
+operator("-", 6, infix, prefix);
 
-add_infix_class("*", "/", "%", 7);
+operator("==", 4, infix); 
+operator("!=", 4, infix); 
+operator(">=", 4, infix); 
+operator("<=", 4, infix); 
+operator(">",  4, infix); 
+operator("<",  4, infix); 
 
-add_infix("+", 6);
-add_infix("-", 6);
-operators["-"].prefix = 
-                 function(t){ 
-                     return ["prefix", t, 
-                             an_expression()];
-                 }
+operator("and", 3, infix);
+operator("or", 2, infix);
 
+operator("λ", 1, null, functiony);
+operator("scope", 1, null, functiony);
+operator("constructor", 1, null, functiony);
 
-add_infix_class("==", "!=", ">=", "<=", ">", "<", 4);
+operator("?", 1, 
+                 function (t, left) {
+                     var test, then, els;
+                     test = an_expression();
+                     expect(":");
+                     els = an_expression();
+                     return ["?", test, then, els];
+                 });
 
-add_infix("and", 3);
-add_infix("or", 2);
-
-add_operator("(", 9, 
-                 function(t){
-                     // paren'd expression 
-                     var exp = an_expression();
-                     expect(")");
-                     return exp;
-                 }, 
+operator("(", 9, 
                  function(t, left) {
                      // invocation
                      if (!maybe(")")){
@@ -175,9 +157,21 @@ add_operator("(", 9,
                          expect(")");
                      }
                      return ["invocation", left, args];
+                 },
+                 function(t){
+                     // paren'd expression 
+                     var exp = an_expression();
+                     expect(")");
+                     return exp;
                  });
 
-add_operator("[", 9, 
+operator("[", 9, 
+                 function(t, left) {
+                     // Refinement
+                     var arg = an_expression();
+                     expect("]");
+                     return ["refinement", left, arg];
+                 },
                  function(t){
                      // Array literal
                      var mems = [an_expression()];
@@ -186,16 +180,9 @@ add_operator("[", 9,
                      }
                      expect("]");
                      return ["array", mems];
-                 }, 
-                 function(t, left) {
-                     // Refinement
-                     var arg = an_expression();
-                     expect("]");
-                     return ["refinement", left, arg];
                  });
 
-add_infix("{", 0);
-operators["{"].postfix = function(t){
+operator("{", 0, function(t){
                      // Array literal
                      var mems = [];
                      if (maybe(".")) {
@@ -211,27 +198,34 @@ operators["{"].postfix = function(t){
                      }
                      expect("}");
                      return ["object", mems];
-                 };
-
-
-
-
-add_infix("?", 1);
-operators["?"].infix = function (t, left) {
-    var test, then, els;
-    test = an_expression();
-    expect(":");
-    els = an_expression();
-    return ["?", test, then, els];
-}
-
-add_functiony("λ");
-add_functiony("scope");
-add_functiony("constructor");
+                 });
 
 // OK, time for statements!
 
-add_infix_class("=", "+=", "-=", 1); // magically takes care of assignment.
+var statements = {};
+
+var statement = function () {
+    var ret;
+    if (statements[tokens.peek().type]) {
+       ret = statements[tokens.pop().type]()
+    } else {
+       ret = expression(-1);
+    }
+    expect("dent");
+    return ret;
+}
+
+var statementi = function () {
+    var ret = [];
+    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
+       ret.push(statement());
+    }
+    return ret;
+}
+
+operator("=", 0, infix); 
+operator("+=", 0, infix); 
+operator("-=", 0, infix); 
 
 statements["break"] = function () {
     t = maybe("(name)");
