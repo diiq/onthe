@@ -73,7 +73,9 @@ generators["case"] = "case(%1):%2";
 
 generators["default"] = "default:%1";
 
-generators["for"] = " for (%1 = %2; %1 < %3; %1 += %4) %5";
+generators["for"] = "for (%1 = %2; %1 < %3; %1 += %4) %5";
+
+generators["let"] = "var %L,1";
 
 exports.javascript = javascript;
 exports.generate = generate;

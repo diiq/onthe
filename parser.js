@@ -17,7 +17,6 @@ var token_stream = function (s) { tokens = lexer.tokenize(s).reverse(); };
 var expression = function (precedence_prev) {
     var current, left;
     current = tokens.pop();
-    log(current);
     left = fill(current);
     next = tokens.peek(); 
     while (precedence_prev < precedence(next)) {
@@ -67,7 +66,6 @@ var prefix = function (t, left) {
     return ["infix", ["literal", t], expression(precedence(t.type))];
 };
 
-
 var operator = function (type, p, infix, prefix) {
     prefix && (prefixes[type] = prefix);
     infix && (infixes[type] = infix);
@@ -108,6 +106,26 @@ var maybe = function (t) {
     return tokens.pop();
 }
 
+var statements = {};
+
+var statement = function () {
+    var ret;
+    if (statements[tokens.peek().type]) {
+       ret = statements[tokens.pop().type]()
+    } else {
+       ret = expression(-1);
+    }
+    expect("dent");
+    return ret;
+}
+
+var statementi = function () {
+    var ret = [];
+    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
+       ret.push(statement());
+    }
+    return ret;
+}
 
 // Operators for expressions:
 
@@ -202,26 +220,6 @@ operator("{", 0, function(t){
 
 // OK, time for statements!
 
-var statements = {};
-
-var statement = function () {
-    var ret;
-    if (statements[tokens.peek().type]) {
-       ret = statements[tokens.pop().type]()
-    } else {
-       ret = expression(-1);
-    }
-    expect("dent");
-    return ret;
-}
-
-var statementi = function () {
-    var ret = [];
-    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
-       ret.push(statement());
-    }
-    return ret;
-}
 
 operator("=", 0, infix); 
 operator("+=", 0, infix); 
@@ -304,6 +302,14 @@ statements["for"] = function () {
     }
 }
 
+statements["let"] = function () {
+    var vars = [["literal", tokens.pop()]];
+    while (maybe(",")) {
+        vars.push(["literal", tokens.pop()]);
+    }
+    return ["let", vars];
+}
+
 exports.statement = statement;
-exports.expression = expression;
+exports.expression = an_expression;
 exports.token_stream = token_stream;

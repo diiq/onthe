@@ -1,5 +1,6 @@
 scope ():
-    for i from 1 to 10:
+    let i, p
+    for i from 1 to 11:
         console.log(i)
     p = 5
     console.log(p)
