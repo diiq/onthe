@@ -35,8 +35,12 @@ var javascript = function (t) {
 var generate = function (file) {
     s = fs.readFileSync(file, 'ascii');
 
-    var t = parser.statement(parser.token_stream(s))
-    return javascript(t);
+    var t = parser.statements(parser.token_stream(s))
+    var ret = "";
+    for(var i =0; i<t.length; i++){
+        ret += javascript(t[i]) + ";";
+    }
+    return ret;
 }
 
 generators["infix"] = "(%2%1%3)";

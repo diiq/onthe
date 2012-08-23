@@ -1,7 +1,8 @@
-//[TODO: significant whitespace!]
+var scanner = require("./scanner.js");
 var test = require("./test.js");
 var tests = {};
 var log = console.log;
+
 var all_true = function () {
     var ret = {};
     for (var i = 0; i < arguments.length; i++){
@@ -19,7 +20,7 @@ var delimiters = ["\"", "\'"] //, "/"]; // how to distinguish between
 
 var invalid_name_initials = ["-"]; // Digits are assumed.
 
-var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}", ":", "n"];
+var invalid_name_characters = ["(", ")", "[", "]", ",", ";", ".", " ", "{", "}", ":"];
 
 // Keywords are names with language-specific global meaning. 
 // [TODO consider if these can just be names.]
@@ -41,32 +42,11 @@ var cchar = function (s, i, c) { return s[i] === c ? i+1 : false; }
 var spaces = function (s, i) { 
     for(; s[i] === ' '; i++);
     if (s[i] === "/" && s[i+1] === "/")
-        for(; s[i] !== '\n'; i++);
+        for(; s[i] !== ';'; i++);
     return i;
 }
 
 // *** Lexers ***
-
-var indent_stack = [0]; // TODO: hide in a closure, so I can lex concurrently
-var dented = false;
-var indent = function (s, i) {
-    var j = 1;
-    for(; s[i+j] === ' '; j++);
-    if (!dented) {
-        dented = true;
-        return {from : i, to : i, type : "dent", value : "dent"};
-    }
-    dented = false;
-    if (j-1 > indent_stack[indent_stack.length-1]) { // Indent!
-        indent_stack.push(j-1);
-        return {from : i, to : i+j, type : "indent", value : "indent"};
-    }
-    if (j-1 < indent_stack[indent_stack.length-1]) { // dendent!
-        indent_stack.pop();
-        return {from : i, to : i, type : "dedent", value : "dedent"};
-    }
-    return false;
-}
 
 var delimited = function (s, i, del) {
     var j = i;
@@ -134,19 +114,14 @@ var matcher = function () {
     for (var i = 0; i < invalid_name_characters.length; i++) {
         ret += "\\" + invalid_name_characters[i] + "|";
     }
-    return new RegExp(ret.slice(0, ret.length - 1) + "");
+    return new RegExp(ret.slice(0, ret.length - 1));
 }();
 
-var token_at = function (s, i) {
-    var word, nl;
+var token_at = function (s, prev) {
+    var word, nl, i;
+    i = prev.to;
     i = spaces(s, i);
 
-    // Indent, dedent
-    if (s[i] === "\n") {
-        nl = indent(s, i);
-        if (nl) return nl;
-        i = spaces(s, i+1);
-    }
     // Strings
     if (delimiters.indexOf(s[i]) !== -1) return delimited(s, i, s[i]);
 
@@ -156,7 +131,7 @@ var token_at = function (s, i) {
     if (invalid_name_characters.indexOf(s[i]) !== -1 ||
         invalid_name_initials.indexOf(s[i]) !== -1){
          return {from: i, to: i+1, type: s[i], value: s[i]};
-    }
+    } // TODO this needs to come after keywords.
     word = s.slice(i, s.length).split(matcher)[0];
 
     // Keywords
@@ -171,21 +146,23 @@ tests.token_at = function () {
     i = 0;
     s = "call while fart \"helllo\" (/ag asdat f/, 2)";
     while (i < s.length) {
-        t = token_at(s, i);
+        t = token_at(s, {to: i});
         i = t.to;
     }
     return t.value === ')';
 }
 
 var tokenize = function (s) {
-    var ret = [], i = 0;
+    var ret = [], prev;
+    s = scanner.strip_whitespace(s);
     indent_stack = [0]; dented = false;
-    while (i < s.length) {
-        ret.push(token_at(s, i));
-        i = ret[ret.length - 1].to;
+    prev = {to: 0}
+    while (prev.to < s.length) {
+        prev = token_at(s, prev)
+        ret.push(prev);
     }
-    ret.push({from:i, to:i, type:"dent", value:"dent"});
-    ret.push({from:i, to:i, type:"(end)", value:"(end)"});
+    ret.push({type:"dent", value:"dent"});
+    ret.push({type:"(end)", value:"(end)"});
     return ret;
 }
 

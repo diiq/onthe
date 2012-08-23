@@ -1,6 +1,33 @@
-scope ():
-    let i, p
-    for i from 1 to 11:
-        console.log(i)
-    p = 5
-    console.log(p)
+let generator, querystring, http, closure_compiled
+
+generator = require("./generator.js")
+querystring = require("querystring")
+http = require('http')
+
+closure_compiled = λ(code):
+    let ret, post_data, post_options, post_req
+    post_data = querystring.stringify({.js_code code,
+                                       .output_info 'compiled_code',
+                                       .formatting 'pretty_print'})
+
+
+    post_options = {.host 'closure-compiler.appspot.com',
+                    .path '/compile',
+                    .method 'POST',
+                    .headers {.'Content-Type' 'application/x-www-form-urlencoded',
+                              .'Content-Length' post_data.length}}
+
+    post_req = http.request(post_options, λ(res):
+        res.setEncoding('utf8')
+        res.on('data', λ(chunk):
+            console.log(chunk)
+        )
+    )
+
+    // write parameters to post body
+    post_req.write(post_data)
+    post_req.end()
+
+
+closure_compiled(generator.generate(process.argv[2]))
+

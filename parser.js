@@ -50,11 +50,11 @@ var fill = function (t, left) {
 }
 
 var precedence = function (t) {
-    return precedences[t.type];
+    return precedences[t.type] || -1;
 }
 
 var op_fail = function (t, left) {
-    log("Failed operation:", type, t, left); 
+    log("Failed operation:", t.type, t, left); 
     throw {name: "failop"};
 };
 
@@ -115,13 +115,13 @@ var statement = function () {
     } else {
        ret = expression(-1);
     }
-    expect("dent");
+    expect(";");
     return ret;
 }
 
 var statementi = function () {
     var ret = [];
-    while (tokens.peek().type !== "dedent" && tokens.peek().type !== "(end)") {
+    while (tokens.peek().type !== "}" && tokens.peek().type !== "(end)") {
        ret.push(statement());
     }
     return ret;
@@ -200,7 +200,7 @@ operator("[", 9,
                      return ["array", mems];
                  });
 
-operator("{", 0, function(t){
+operator("{", 0, null, function(t){
                      // Array literal
                      var mems = [];
                      if (maybe(".")) {
@@ -221,9 +221,9 @@ operator("{", 0, function(t){
 // OK, time for statements!
 
 
-operator("=", 0, infix); 
-operator("+=", 0, infix); 
-operator("-=", 0, infix); 
+operator("=", 1, infix); 
+operator("+=", 1, infix); 
+operator("-=", 1, infix); 
 
 statements["break"] = function () {
     t = maybe("(name)");
@@ -234,7 +234,6 @@ statements["if"] = function () {
     var test, then, els;
     test = an_expression();
     then = block();
-    expect("dent");
     if (maybe("else")) {
         if (maybe("if")) {
             els = statements["if"]();
@@ -242,8 +241,6 @@ statements["if"] = function () {
             els = block();
         }
     return ["ife", test, then, els];
-    } else {
-        tokens.push({type:"dent", value:"dent"});
     }
     return ["if", test, then];
 }
@@ -251,27 +248,24 @@ statements["if"] = function () {
 statements["switch"] = function () {
     var sw, cases = [], t, b;
     sw = an_expression();
-    expect(":", "dent", "indent");
+    expect("{");
     while (maybe("case")) {
         t = an_expression();
         b = block();
         cases.push(["case", t, b]);
-        maybe("dent");
     }
     if (maybe("default")){
         cases.push(["default", block()]);
     }
-    expect("dent", "dedent");
+    expect("}");
     return ["switch", sw, cases];
 }
 
 var block = function () {
     var ret;
-    expect(":");
-    if (maybe("dent")) {
-        expect("indent");
+    if (maybe("{")) {
         ret = ["block", statementi()];
-        expect("dedent");
+        expect("}");
     } else {
         ret = ["block", [statement()]];
     }
@@ -311,5 +305,6 @@ statements["let"] = function () {
 }
 
 exports.statement = statement;
+exports.statements = statementi;
 exports.expression = an_expression;
 exports.token_stream = token_stream;
