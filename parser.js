@@ -27,6 +27,8 @@ var expression = function (precedence_prev) {
     return left;
 }
 
+var an_expression = function () { return expression(0); };
+
 var operators = {}
 
 var fill = function (t, left) {
@@ -78,7 +80,7 @@ var add_functiony = function(trigger) {
         if (maybe("(")) {
             if (!maybe(")")){
                 do {
-                    args.push(expression(0));
+                    args.push(an_expression());
                 } while(maybe(","));
                 expect(")");
             }
@@ -116,7 +118,7 @@ var statement = function () {
     if (statements[tokens.peek().type]) {
        ret = statements[tokens.pop().type]()
     } else {
-       ret = expression(0);
+       ret = an_expression();
     }
     expect("dent");
     return ret;
@@ -147,7 +149,7 @@ add_infix("-", 6);
 operators["-"].prefix = 
                  function(t){ 
                      return ["prefix", t, 
-                             expression(0)];
+                             an_expression()];
                  }
 
 
@@ -159,16 +161,16 @@ add_infix("or", 2);
 add_operator("(", 9, 
                  function(t){
                      // paren'd expression 
-                     var exp = expression(0);
+                     var exp = an_expression();
                      expect(")");
                      return exp;
                  }, 
                  function(t, left) {
                      // invocation
                      if (!maybe(")")){
-                         var args = [expression(0)];
+                         var args = [an_expression()];
                          while (maybe(",")) {
-                             args.push(expression(0));
+                             args.push(an_expression());
                          }
                          expect(")");
                      }
@@ -178,16 +180,16 @@ add_operator("(", 9,
 add_operator("[", 9, 
                  function(t){
                      // Array literal
-                     var mems = [expression(0)];
+                     var mems = [an_expression()];
                      while (maybe(",")) {
-                         mems.push(expression(0));
+                         mems.push(an_expression());
                      }
                      expect("]");
                      return ["array", mems];
                  }, 
                  function(t, left) {
                      // Refinement
-                     var arg = expression(0);
+                     var arg = an_expression();
                      expect("]");
                      return ["refinement", left, arg];
                  });
@@ -199,13 +201,13 @@ operators["{"].postfix = function(t){
                      if (maybe(".")) {
                         mems.push(["object_pair", 
                                    ["literal", tokens.pop()], 
-                                   expression(0)]);
+                                   an_expression()]);
                      }
                      while (maybe(",")) {
                          expect(".");
                          mems.push(["object_pair", 
                                     ["literal", tokens.pop()], 
-                                    expression(0)]);
+                                    an_expression()]);
                      }
                      expect("}");
                      return ["object", mems];
@@ -217,9 +219,9 @@ operators["{"].postfix = function(t){
 add_infix("?", 1);
 operators["?"].infix = function (t, left) {
     var test, then, els;
-    test = expression(0);
+    test = an_expression();
     expect(":");
-    els = expression(0);
+    els = an_expression();
     return ["?", test, then, els];
 }
 
@@ -238,7 +240,7 @@ statements["break"] = function () {
 
 statements["if"] = function () {
     var test, then, els;
-    test = expression(0);
+    test = an_expression();
     then = block();
     expect("dent");
     if (maybe("else")) {
@@ -256,10 +258,10 @@ statements["if"] = function () {
 
 statements["switch"] = function () {
     var sw, cases = [], t, b;
-    sw = expression(0);
+    sw = an_expression();
     expect(":", "dent", "indent");
     while (maybe("case")) {
-        t = expression(0);
+        t = an_expression();
         b = block();
         cases.push(["case", t, b]);
         maybe("dent");
@@ -267,8 +269,7 @@ statements["switch"] = function () {
     if (maybe("default")){
         cases.push(["default", block()]);
     }
-    expect("dent");
-    expect("dedent");
+    expect("dent", "dedent");
     return ["switch", sw, cases];
 }
 
@@ -287,18 +288,18 @@ var block = function () {
 
 statements["for"] = function () {
     var v, n, from, to, by, b;
-    v = expression(0); // test for name/
+    v = an_expression(); // test for name/
     switch (tokens.pop().type) {
         case "in":
-            n = expression(0);
+            n = an_expression();
             b = block();
             return ["forin", v, n];
         case "from":
-            from = expression(0);
+            from = an_expression();
             expect("to");
-            to = expression(0);
+            to = an_expression();
             if (maybe("by")) {
-                by = expression(0);
+                by = an_expression();
             } else {
                 by = ["literal", {type:"(literal)", value:1}];
             }
