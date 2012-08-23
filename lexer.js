@@ -163,7 +163,7 @@ var token_at = function (s, i) {
     if (keywords[word]) return {from: i, to: i+word.length, type: word, value: word};
 
     // Literals
-    return {from: i, to: i+word.length, type: "(name)", value: word};
+    return {from: i, to: i+word.length, type: "(literal)", value: word};
 }
 
 tests.token_at = function () {

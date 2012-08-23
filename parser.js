@@ -89,12 +89,18 @@ var add_functiony = function(trigger) {
 }
 // Parsing statements
 
-var expect = function (t) {
-    if (tokens.peek().type !== t) {
-        log([t, tokens.peek()])
-        throw {name: "expected", info: [t, tokens.peek()]}
+var expect = function () {
+    var expectone = function (t) {
+        if (tokens.peek().type !== t) {
+            log([t, tokens.peek()])
+            throw {name: "expected", info: [t, tokens.peek()]}
+        }
+        tokens.pop();
+        return true;
     }
-    tokens.pop();
+    for (var i = 0; i<arguments.length; i++){
+        if(!expectone(arguments[i])) return false;
+    }
     return true;
 }
 
@@ -127,15 +133,9 @@ var statementi = function () {
 // Operators for expressions:
 
 add_operator("(literal)", 0,
-              function(t){ return ["literal", t]; }, 
-              function() { throw {name: "literal_operator"}});
-add_operator("(name)", 0,
-              function(t){ return ["literal", t]; }, 
-              function() { throw {name: "literal_operator"}});
+              function(t){ return ["literal", t]; });
 
-add_operator("(end)", 0,
-              function () { throw {name: "end_operator"} }, 
-              function () { throw {name: "end_operator"}});
+add_operator("(end)", 0);
 
 add_infix(".", 10);
 add_prefix("not", 8);
@@ -257,9 +257,7 @@ statements["if"] = function () {
 statements["switch"] = function () {
     var sw, cases = [], t, b;
     sw = expression(0);
-    expect(":");
-    expect("dent");
-    expect("indent");
+    expect(":", "dent", "indent");
     while (maybe("case")) {
         t = expression(0);
         b = block();
